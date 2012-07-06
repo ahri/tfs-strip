@@ -1,0 +1,83 @@
+#!/bin/bash
+set -eu
+
+write()
+{
+        file="$1"
+        content="$(cat)"
+
+        chmod 666 "$file"
+        echo "$content" > "$file"
+        unix2dos -q "$file"
+        chmod 666 "$file"
+}
+
+find . \( -iname '*.csproj' -or \
+          -iname '*.csproj.user' -or \
+          -iname '*.vdproj' -or \
+          -iname '*.sln' -or \
+          -iname 'licenses.licx' -or \
+          -iname '*scc' \
+\) -print0 | while read -d $'\0' f; do
+        git update-index --assume-unchanged "$f"
+
+        if [[ $f == *scc ]]; then
+                rm "$f"
+        fi
+
+        if [[ $f == */licenses.licx ]]; then
+                grep -v Infragistics "$f"  | write "$f"
+        fi
+
+        if [[ $f == *.csproj ]]; then
+                awk '
+                        /Reference Include="Infragistics/ {
+                                gsub(/, Version=[0-9\.]+/, "");
+                                gsub(/, PublicKeyToken=[0-9a-f]+/, "");
+                                print;
+                                next
+                        }
+                        
+                        /HintPath/  && /Infragistics/ {
+                                next
+                        }
+
+                        /Scc/ {
+                                next
+                        }
+                        
+                        {
+                                print
+                        }' < "$f" | write "$f"
+        fi
+
+        if [[ $f == *.sln ]]; then
+                awk '
+                        BEGIN {
+                                p = 1;
+                        }
+
+                        /GlobalSection\(TeamFoundationVersionControl\)/ {
+                                p = 0;
+                        }
+
+                        p == 1 {
+                                print;
+                        }
+
+                        p == 0 && /EndGlobalSection/ {
+                                p = 1;
+                        }' < "$f" | write "$f"
+        fi
+
+        if [[ $f == *.vdproj ]]; then
+                awk '
+                        /Scc/ {
+                                gsub(/"8:[^"]+"/, "\"8:\"");
+                        }
+
+                        {
+                                print;
+                        }' < "$f" | write "$f"
+        fi
+done

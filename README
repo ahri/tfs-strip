@@ -1,0 +1,14 @@
+I wrote this script to remove all source control bindings from a VS2010 source
+tree. It's quick and dirty (including manipulating XML files with awk...) but
+it works :)
+
+It also strips specific Infragistics assembly versions from the tree, which is
+probably solving a different problem in the same place, but hey, I'm lazy and
+this is the first version.
+
+I wrote it because I'm using git-tfs and don't want to tell VS to ignore stuff
+every time I open a solution -- so I've opted to remove all knowledge of TFS
+bindings from the solutions.
+
+Obviously it's a bash shell script, so you need bash (probably in cygwin) to
+run it.
