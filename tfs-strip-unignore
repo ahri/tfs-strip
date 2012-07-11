@@ -1,0 +1,5 @@
+#!/bin/bash
+git ls-files -vz | while read -d $'\0' l; do
+        [[ $l = H* ]] && continue
+        git update-index --no-assume-unchanged "${l#h }"
+done
